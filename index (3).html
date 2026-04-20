@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Audio Player</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 460px;
+      margin: 60px auto;
+      padding: 0 20px;
+      background: #f5f5f5;
+      color: #222;
+    }
+
+    h2 { margin-bottom: 20px; font-size: 1.2rem; }
+
+    .card {
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      padding: 24px;
+    }
+
+    /* ── File drop zone ── */
+    #loaderZone {
+      display: block;
+      position: relative;
+      border: 2px dashed #aaa;
+      border-radius: 4px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      margin-bottom: 20px;
+      font-size: 0.85rem;
+      color: #555;
+      /* Reset label defaults */
+      width: auto;
+      font-weight: normal;
+    }
+    #loaderZone:hover { background: #f0f0f0; }
+    #loaderZone.loaded { border-color: #555; border-style: solid; color: #222; }
+
+    /* Invisible file input stretched over the whole label */
+    #fileInput {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    #loaderFilename {
+      display: block;
+      margin-top: 6px;
+      font-size: 0.75rem;
+      color: #888;
+    }
+
+    /* ── Time row ── */
+    .time-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: #555;
+      margin-bottom: 4px;
+    }
+
+    /* ── Seek bar ── */
+    #seekBar {
+      width: 100%;
+      display: block;
+      cursor: pointer;
+      margin-bottom: 16px;
+    }
+
+    /* ── Transport buttons ── */
+    .controls {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    button {
+      font-family: Arial, sans-serif;
+      font-size: 0.82rem;
+      padding: 6px 14px;
+      border: 1px solid #aaa;
+      background: #fff;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover  { background: #e8e8e8; }
+    button.active { background: #ddd; border-color: #555; font-weight: bold; }
+
+    /* ── Volume / Speed rows ── */
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      font-size: 0.82rem;
+    }
+
+    .row-label { width: 52px; color: #444; flex-shrink: 0; }
+
+    .row input[type="range"] { flex: 1; cursor: pointer; }
+
+    #volumeVal { width: 36px; color: #444; font-size: 0.8rem; }
+
+    select {
+      font-size: 0.82rem;
+      padding: 4px 6px;
+      border: 1px solid #aaa;
+      border-radius: 4px;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    /* ── Status ── */
+    #statusText {
+      font-size: 0.75rem;
+      color: #777;
+      margin-top: 14px;
+      padding-top: 10px;
+      border-top: 1px solid #eee;
+    }
+
+    /* ── Keyboard hints ── */
+    .shortcuts {
+      font-size: 0.7rem;
+      color: #aaa;
+      margin-top: 8px;
+    }
+    .shortcuts span { margin-right: 10px; }
+  </style>
+</head>
+<body>
+
+<h2>Audio Player</h2>
+
+<div class="card">
+
+  <!-- File loader: label wraps the hidden input so any click opens the picker -->
+  <label id="loaderZone">
+    <input type="file" id="fileInput" accept="audio/*" />
+    Click or drop an audio file here<br>(MP3, WAV, OGG, FLAC…)
+    <span id="loaderFilename">Using default: audio.mp3</span>
+  </label>
+
+  <audio id="audioEl" src="audio.mp3" preload="metadata"></audio>
+
+  <!-- Seek -->
+  <div class="time-row">
+    <span id="currentTime">0:00</span>
+    <span id="duration">0:00</span>
+  </div>
+  <input type="range" id="seekBar" min="0" max="100" value="0" step="0.1" />
+
+  <!-- Transport -->
+  <div class="controls">
+    <button id="skipBackBtn">« 10s</button>
+    <button id="playBtn">▶ Play</button>
+    <button id="skipFwdBtn">10s »</button>
+    <button id="muteBtn">Mute</button>
+    <button id="loopBtn">Loop</button>
+  </div>
+
+  <!-- Volume -->
+  <div class="row">
+    <span class="row-label">Volume</span>
+    <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="1" />
+    <span id="volumeVal">100%</span>
+  </div>
+
+  <!-- Speed -->
+  <div class="row">
+    <span class="row-label">Speed</span>
+    <select id="speedSelect">
+      <option value="0.5">0.5×</option>
+      <option value="0.75">0.75×</option>
+      <option value="1" selected>1×</option>
+      <option value="1.25">1.25×</option>
+      <option value="1.5">1.5×</option>
+      <option value="2">2×</option>
+    </select>
+  </div>
+
+  <div id="statusText">Status: Ready</div>
+
+  <div class="shortcuts">
+    <span>Space: play/pause</span>
+    <span>M: mute</span>
+    <span>L: loop</span>
+    <span>←/→: skip 10s</span>
+    <span>↑/↓: volume</span>
+  </div>
+
+</div>
+
+<script src="audio.js"></script>
+</body>
+</html>
