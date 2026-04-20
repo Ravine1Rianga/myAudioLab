@@ -3,451 +3,172 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>WAVECRAFT — Audio Player</title>
+  <title>Audio Player</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Bebas+Neue&display=swap');
-
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --bg: #0a0a0f;
-      --surface: #111118;
-      --panel: #1a1a26;
-      --accent: #e8ff47;
-      --accent2: #ff4f7a;
-      --accent3: #47c8ff;
-      --text: #f0f0f0;
-      --muted: #666680;
-      --border: #2a2a3a;
-    }
-
     body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Space Mono', monospace;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      overflow-x: hidden;
+      font-family: Arial, sans-serif;
+      max-width: 460px;
+      margin: 60px auto;
+      padding: 0 20px;
+      background: #f5f5f5;
+      color: #222;
     }
 
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image:
-        linear-gradient(rgba(232,255,71,0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(232,255,71,0.03) 1px, transparent 1px);
-      background-size: 60px 60px;
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .player-shell {
-      position: relative;
-      z-index: 1;
-      width: 100%;
-      max-width: 580px;
-    }
-
-    .brand {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 2.8rem;
-      letter-spacing: 0.12em;
-      color: var(--accent);
-      text-shadow: 0 0 40px rgba(232,255,71,0.4);
-      margin-bottom: 4px;
-    }
-    .brand span { color: var(--accent2); }
-    .tagline {
-      font-size: 0.65rem;
-      color: var(--muted);
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      margin-bottom: 28px;
+    h2 {
+      margin-bottom: 20px;
+      font-size: 1.2rem;
     }
 
     .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 28px;
-      position: relative;
-      overflow: hidden;
-    }
-    .card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 2px;
-      background: linear-gradient(90deg, var(--accent2), var(--accent), var(--accent3));
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      padding: 24px;
     }
 
-    /* File loader */
-    .loader-zone {
-      border: 1px dashed var(--border);
+    #loaderZone {
+      border: 1px dashed #aaa;
       border-radius: 4px;
-      padding: 20px;
+      padding: 14px;
       text-align: center;
       cursor: pointer;
-      transition: all 0.2s;
-      background: var(--panel);
-      margin-bottom: 24px;
+      margin-bottom: 20px;
+      font-size: 0.85rem;
+      color: #555;
     }
-    .loader-zone:hover { border-color: var(--accent); background: rgba(232,255,71,0.04); }
-    .loader-zone.has-file { border-style: solid; border-color: var(--accent); }
-    .loader-icon { font-size: 1.4rem; margin-bottom: 6px; display: block; }
-    .loader-text { font-size: 0.65rem; color: var(--muted); letter-spacing: 0.1em; }
-    .loader-filename { font-size: 0.72rem; color: var(--accent); margin-top: 6px; word-break: break-all; }
+    #loaderZone:hover { background: #f0f0f0; }
+    #loaderZone.has-file { border-color: #555; color: #222; }
     #fileInput { display: none; }
 
-    /* Visualizer */
-    .visualizer {
-      display: flex;
-      align-items: flex-end;
-      gap: 3px;
-      height: 36px;
-      margin-bottom: 20px;
-      padding: 4px 0;
-    }
-    .vis-bar {
-      flex: 1;
-      background: var(--border);
-      border-radius: 1px;
-      min-height: 2px;
-    }
-
-    /* Progress */
-    .progress-section { margin-bottom: 20px; }
     .time-row {
       display: flex;
       justify-content: space-between;
-      font-size: 0.65rem;
-      color: var(--muted);
-      margin-bottom: 8px;
-      letter-spacing: 0.08em;
+      font-size: 0.8rem;
+      color: #555;
+      margin-bottom: 4px;
     }
-    #currentTime { color: var(--accent); }
 
-    .progress-track {
+    #seekBar {
       width: 100%;
-      height: 6px;
-      background: var(--panel);
       cursor: pointer;
-      position: relative;
-      overflow: visible;
-    }
-    .progress-track::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: repeating-linear-gradient(
-        90deg, var(--border) 0px, var(--border) 1px,
-        transparent 1px, transparent 10px
-      );
-    }
-    .progress-fill {
-      height: 100%;
-      background: linear-gradient(90deg, var(--accent2), var(--accent));
-      width: 0%;
-      position: relative;
-    }
-    .progress-fill::after {
-      content: '';
-      position: absolute;
-      right: -5px; top: 50%;
-      transform: translateY(-50%);
-      width: 10px; height: 10px;
-      background: var(--accent);
-      border-radius: 50%;
-      box-shadow: 0 0 10px var(--accent);
-    }
-    #progressBar {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 100%;
-      height: 6px;
-      background: transparent;
-      cursor: pointer;
-      position: absolute;
-      top: 0; left: 0;
-      margin: 0;
-      opacity: 0;
-    }
-
-    /* Buttons */
-    .btn {
-      font-family: 'Space Mono', monospace;
-      font-size: 0.65rem;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      border: 1px solid var(--border);
-      background: var(--panel);
-      color: var(--muted);
-      cursor: pointer;
-      padding: 8px 14px;
-      border-radius: 2px;
-      transition: all 0.15s;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(232,255,71,0.06); }
-    .btn.active { border-color: var(--accent); color: var(--accent); background: rgba(232,255,71,0.1); box-shadow: 0 0 12px rgba(232,255,71,0.2); }
-    .btn.active.danger { border-color: var(--accent2); color: var(--accent2); background: rgba(255,79,122,0.1); box-shadow: 0 0 12px rgba(255,79,122,0.2); }
-
-    .btn-play {
-      padding: 14px 28px;
-      border-color: var(--accent);
-      color: var(--accent);
-      background: rgba(232,255,71,0.08);
-      font-size: 0.75rem;
-    }
-    .btn-play:hover { background: rgba(232,255,71,0.18); box-shadow: 0 0 20px rgba(232,255,71,0.25); }
-    .btn-play.playing { background: rgba(232,255,71,0.15); box-shadow: 0 0 20px rgba(232,255,71,0.3); }
-
-    /* Transport */
-    .transport {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      margin-bottom: 24px;
-    }
-
-    /* Controls grid */
-    .controls-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin-bottom: 20px;
-    }
-    .control-block {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 3px;
-      padding: 14px;
-    }
-    .control-label {
-      font-size: 0.58rem;
-      color: var(--muted);
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      margin-bottom: 10px;
-      display: flex;
-      justify-content: space-between;
-    }
-    .control-value { color: var(--accent3); font-weight: 700; }
-
-    input[type="range"] {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 100%;
-      height: 4px;
-      background: var(--border);
-      cursor: pointer;
-      outline: none;
-    }
-    input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 14px; height: 14px;
-      background: var(--accent);
-      border-radius: 50%;
-      cursor: pointer;
-      box-shadow: 0 0 8px rgba(232,255,71,0.5);
-    }
-    input[type="range"]::-moz-range-thumb {
-      width: 14px; height: 14px;
-      background: var(--accent);
-      border: none;
-      border-radius: 50%;
-    }
-
-    /* Speed */
-    .speed-grid { display: flex; gap: 6px; flex-wrap: wrap; }
-    .speed-btn {
-      font-family: 'Space Mono', monospace;
-      font-size: 0.6rem;
-      padding: 4px 8px;
-      border: 1px solid var(--border);
-      background: transparent;
-      color: var(--muted);
-      cursor: pointer;
-      border-radius: 2px;
-      transition: all 0.15s;
-    }
-    .speed-btn:hover { border-color: var(--accent3); color: var(--accent3); }
-    .speed-btn.active { border-color: var(--accent3); color: var(--accent3); background: rgba(71,200,255,0.1); }
-
-    /* Status */
-    .status-bar {
-      display: flex;
-      align-items: center;
-      font-size: 0.6rem;
-      color: var(--muted);
       margin-bottom: 16px;
-      letter-spacing: 0.1em;
-    }
-    .status-dot {
-      width: 7px; height: 7px;
-      border-radius: 50%;
-      background: var(--muted);
-      display: inline-block;
-      margin-right: 8px;
-      transition: background 0.3s;
-    }
-    .status-dot.playing {
-      background: var(--accent);
-      box-shadow: 0 0 8px var(--accent);
-      animation: pulse 1s ease-in-out infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
+      display: block;
     }
 
-    /* Keyboard hints */
-    .shortcuts {
+    .controls {
       display: flex;
-      gap: 16px;
+      gap: 8px;
       flex-wrap: wrap;
-      border-top: 1px solid var(--border);
-      padding-top: 16px;
-    }
-    .key-item { display: flex; align-items: center; gap: 6px; font-size: 0.6rem; color: var(--muted); }
-    kbd {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 2px;
-      padding: 2px 6px;
-      font-family: 'Space Mono', monospace;
-      font-size: 0.6rem;
-      color: var(--accent);
+      margin-bottom: 16px;
+      align-items: center;
     }
 
-    /* Inactive overlay */
-    .no-audio-overlay { opacity: 0.3; pointer-events: none; user-select: none; }
-    .no-audio-overlay.active { opacity: 1; pointer-events: auto; user-select: auto; }
-
-    /* Toast */
-    .toast {
-      position: fixed;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%) translateY(60px);
-      background: var(--panel);
-      border: 1px solid var(--accent);
-      color: var(--accent);
-      font-size: 0.65rem;
-      letter-spacing: 0.1em;
-      padding: 8px 20px;
-      border-radius: 2px;
-      transition: transform 0.3s ease;
-      z-index: 100;
-      white-space: nowrap;
+    button {
+      font-family: Arial, sans-serif;
+      font-size: 0.8rem;
+      padding: 6px 14px;
+      border: 1px solid #aaa;
+      background: #fff;
+      border-radius: 4px;
+      cursor: pointer;
     }
-    .toast.show { transform: translateX(-50%) translateY(0); }
+    button:hover { background: #e8e8e8; }
+    button.active { background: #ddd; border-color: #555; font-weight: bold; }
+
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    label { font-size: 0.8rem; color: #444; width: 50px; }
+
+    input[type="range"] { flex: 1; cursor: pointer; }
+
+    select {
+      font-size: 0.8rem;
+      padding: 4px 6px;
+      border: 1px solid #aaa;
+      border-radius: 4px;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    #statusText {
+      font-size: 0.75rem;
+      color: #777;
+      margin-top: 14px;
+      border-top: 1px solid #eee;
+      padding-top: 10px;
+    }
+
+    .shortcuts {
+      font-size: 0.7rem;
+      color: #aaa;
+      margin-top: 8px;
+    }
+    .shortcuts span { margin-right: 10px; }
   </style>
 </head>
 <body>
 
-<div class="player-shell">
-  <div class="brand">WAVE<span>CRAFT</span></div>
-  <div class="tagline">Custom Audio Interface — Standard Web APIs Only</div>
+<h2>Audio Player</h2>
 
-  <div class="card">
+<div class="card">
 
-    <!-- File loader -->
-    <div class="loader-zone" id="loaderZone">
-      <span class="loader-icon">📂</span>
-      <div class="loader-text">CLICK OR DROP AN AUDIO FILE</div>
-      <div class="loader-text" style="margin-top:4px">MP3 · WAV · OGG · FLAC · M4A</div>
-      <div class="loader-filename" id="loaderFilename">Default: audio.mp3</div>
-    </div>
-    <input type="file" id="fileInput" accept="audio/*" />
-
-    <!-- Audio element — loads bundled audio.mp3 by default -->
-    <audio id="audioEl" src="audio.mp3" preload="metadata"></audio>
-
-    <div id="playerControls" class="no-audio-overlay active">
-
-      <!-- Status -->
-      <div class="status-bar">
-        <span class="status-dot" id="statusDot"></span>
-        <span id="statusText">READY</span>
-      </div>
-
-      <!-- Visualizer -->
-      <div class="visualizer" id="visualizer"></div>
-
-      <!-- Progress bar -->
-      <div class="progress-section">
-        <div class="time-row">
-          <span id="currentTime">0:00</span>
-          <span id="duration">0:00</span>
-        </div>
-        <div class="progress-track" id="progressTrack">
-          <div class="progress-fill" id="progressFill"></div>
-          <input type="range" id="progressBar" min="0" max="100" value="0" step="0.1" />
-        </div>
-      </div>
-
-      <!-- Transport -->
-      <div class="transport">
-        <button class="btn" id="skipBackBtn">⏮ 10s</button>
-        <button class="btn btn-play" id="playBtn">▶ PLAY</button>
-        <button class="btn" id="skipFwdBtn">10s ⏭</button>
-      </div>
-
-      <!-- Volume + Speed -->
-      <div class="controls-grid">
-        <div class="control-block">
-          <div class="control-label">
-            <span>VOLUME</span>
-            <span class="control-value" id="volumeDisplay">100%</span>
-          </div>
-          <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="1" />
-        </div>
-        <div class="control-block">
-          <div class="control-label">
-            <span>SPEED</span>
-            <span class="control-value" id="speedDisplay">1.0×</span>
-          </div>
-          <div class="speed-grid">
-            <button class="speed-btn" data-speed="0.5">0.5×</button>
-            <button class="speed-btn" data-speed="0.75">0.75×</button>
-            <button class="speed-btn active" data-speed="1">1×</button>
-            <button class="speed-btn" data-speed="1.25">1.25×</button>
-            <button class="speed-btn" data-speed="1.5">1.5×</button>
-            <button class="speed-btn" data-speed="2">2×</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Mute + Loop -->
-      <div class="transport" style="margin-bottom:20px">
-        <button class="btn" id="muteBtn">🔊 MUTE</button>
-        <button class="btn" id="loopBtn">↺ LOOP</button>
-      </div>
-
-      <!-- Keyboard shortcuts -->
-      <div class="shortcuts">
-        <div class="key-item"><kbd>Space</kbd> Play/Pause</div>
-        <div class="key-item"><kbd>M</kbd> Mute</div>
-        <div class="key-item"><kbd>L</kbd> Loop</div>
-        <div class="key-item"><kbd>←</kbd> −10s</div>
-        <div class="key-item"><kbd>→</kbd> +10s</div>
-        <div class="key-item"><kbd>↑↓</kbd> Volume</div>
-      </div>
-    </div>
+  <div id="loaderZone">
+    Click or drop an audio file (MP3, WAV, OGG…)<br>
+    <small id="loaderFilename">Default: audio.mp3</small>
   </div>
+  <input type="file" id="fileInput" accept="audio/*" />
+
+  <audio id="audioEl" src="audio.mp3" preload="metadata"></audio>
+
+  <div class="time-row">
+    <span id="currentTime">0:00</span>
+    <span id="duration">0:00</span>
+  </div>
+  <input type="range" id="seekBar" min="0" max="100" value="0" step="0.1" />
+
+  <div class="controls">
+    <button id="skipBackBtn">« 10s</button>
+    <button id="playBtn">▶ Play</button>
+    <button id="skipFwdBtn">10s »</button>
+    <button id="muteBtn">Mute</button>
+    <button id="loopBtn">Loop</button>
+  </div>
+
+  <div class="row">
+    <label for="volumeSlider">Volume</label>
+    <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="1" />
+    <span id="volumeVal" style="font-size:0.8rem;width:34px">100%</span>
+  </div>
+
+  <div class="row">
+    <label for="speedSelect">Speed</label>
+    <select id="speedSelect">
+      <option value="0.5">0.5×</option>
+      <option value="0.75">0.75×</option>
+      <option value="1" selected>1×</option>
+      <option value="1.25">1.25×</option>
+      <option value="1.5">1.5×</option>
+      <option value="2">2×</option>
+    </select>
+  </div>
+
+  <div id="statusText">Status: Ready</div>
+
+  <div class="shortcuts">
+    <span>Space: play/pause</span>
+    <span>M: mute</span>
+    <span>L: loop</span>
+    <span>←/→: skip 10s</span>
+    <span>↑/↓: volume</span>
+  </div>
+
 </div>
 
-<div class="toast" id="toast"></div>
-
-<!-- All logic lives in audio.js -->
 <script src="audio.js"></script>
 </body>
 </html>
